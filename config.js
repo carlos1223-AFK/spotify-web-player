@@ -1,7 +1,7 @@
 // Pega aquí tu Client ID de https://developer.spotify.com/dashboard
 // y añade en la app la Redirect URI que se muestra en la pantalla de login.
 window.SPOTIFY_CONFIG = {
-  clientId: "TU_CLIENT_ID",
+  clientId: "682c9e630d404b0583be6996b38fea7a",
   scopes: [
     "streaming",
     "user-read-email",
