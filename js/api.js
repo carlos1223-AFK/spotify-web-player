@@ -19,10 +19,10 @@ const Api = (() => {
 
   return {
     me: () => call("/me"),
-    search: (q) => call("/search?" + new URLSearchParams({ q, type: "track,artist,album", limit: 12 })),
+    search: (q) => call("/search?" + new URLSearchParams({ q, type: "track,artist,album", limit: 10 })),
     playlists: () => call("/me/playlists?limit=50"),
-    playlistTracks: (id) =>
-      call(`/playlists/${id}/tracks?limit=100&fields=items(track(uri,name,duration_ms,artists(name),album(images)))`),
+    // Desde 2026 Spotify usa /items (antes /tracks) y cada elemento trae `item` (antes `track`).
+    playlistItems: (id) => call(`/playlists/${id}/items?limit=50`),
     play: (deviceId, body) =>
       call("/me/player/play?device_id=" + deviceId, { method: "PUT", body: JSON.stringify(body) }),
     transfer: (deviceId) =>

@@ -23,6 +23,7 @@ const img = (images, cls) => el("img", { src: images?.at(-1)?.url || images?.[0]
 async function play(body) {
   showError();
   if (!deviceId) return showError("El reproductor aún no está listo (¿tienes Premium?)");
+  player.activateElement(); // el navegador exige un clic del usuario para permitir audio
   try { await Api.play(deviceId, body); } catch (e) { showError(e); }
 }
 
@@ -69,14 +70,19 @@ async function openPlaylist(p, li) {
   li.classList.add("active");
   $("search-input").value = "";
   try {
-    const { items } = await Api.playlistTracks(p.id);
-    const tracks = items.map((i) => i.track).filter((t) => t && t.uri);
+    const { items } = await Api.playlistItems(p.id);
+    const tracks = items.map((i) => i.item || i.track).filter((t) => t && t.uri && t.artists);
     $("results").replaceChildren(
       el("div", { className: "now" }, img(p.images), el("h2", {}, p.name),
         el("button", { onclick: () => play({ context_uri: p.uri }) }, "▶ Reproducir")),
       el("ul", {}, tracks.map((t, i) => trackRow(t, () => play({ context_uri: p.uri, offset: { position: i } })))),
     );
-  } catch (e) { showError(e); }
+  } catch (e) {
+    showError(/403|404/.test(e.message)
+      ? new Error("Spotify no deja leer esta playlist desde apps en modo desarrollo (solo las tuyas o colaborativas). Puedes reproducirla igualmente.")
+      : e);
+    $("results").replaceChildren(el("button", { onclick: () => play({ context_uri: p.uri }) }, "▶ Reproducir " + p.name));
+  }
 }
 
 // ---------- Web Playback SDK ----------
@@ -118,9 +124,11 @@ function initPlayer() {
   player.addListener("playback_error", ({ message }) => showError(message));
   player.connect();
 
-  $("toggle").onclick = () => player.togglePlay();
-  $("prev").onclick = () => player.previousTrack();
-  $("next").onclick = () => player.nextTrack();
+  // Para reanudar usamos la Web API: si el SDK no tiene cola cargada,
+  // togglePlay() falla con "no list was loaded".
+  $("toggle").onclick = () => (!state || state.paused ? play() : player.pause());
+  $("prev").onclick = () => { player.activateElement(); player.previousTrack(); };
+  $("next").onclick = () => { player.activateElement(); player.nextTrack(); };
   $("seek").onchange = (e) => player.seek(Number(e.target.value));
   $("volume").oninput = (e) => player.setVolume(e.target.value / 100);
 }
